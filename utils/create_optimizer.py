@@ -1,5 +1,6 @@
 import torch
 
+
 def create_optimizer(model, opt_config):
     """
     Create optimizer with flexible parameter grouping and learning rates.
@@ -11,62 +12,67 @@ def create_optimizer(model, opt_config):
     opt_name = opt_config['name'].lower()
     base_lr = opt_config['lr']
 
-    print(f"\n🔧 Configuring Optimizer:")
+    print("\n🔧 Configuring Optimizer:")
     print(f"├── Type: {opt_name.upper()}")
     print(f"├── Base LR: {base_lr}")
     print(f"├── Weight Decay: {opt_config['weight_decay']}")
 
     # Prepare parameter groups
     parameter_groups = []
-    
+
     # Handle parameter groups if specified
     param_groups_config = opt_config.get('param_groups', [])
     if param_groups_config:
         print("├── Parameter Groups:")
         # Track which parameters have been assigned to groups
         assigned_params = set()
-        
+
         for group_cfg in param_groups_config:
             group_params = []
             group_lr = group_cfg.get('lr', base_lr)
-            patterns = group_cfg['patterns']  # List of patterns to match parameter names
-            
+            # List of patterns to match parameter names
+            patterns = group_cfg['patterns']
+
             print(f"│   ├── Group: {group_cfg['name']}")
             print(f"│   │   ├── LR: {group_lr}")
             print(f"│   │   └── Patterns: {patterns}")
 
             # Layer-wise decay settings for this group
-            use_layer_decay = group_cfg.get('layer_decay', {}).get('enabled', False)
-            decay_rate = group_cfg.get('layer_decay', {}).get('decay_rate', 1.0)
-            
+            use_layer_decay = group_cfg.get(
+                'layer_decay', {}).get(
+                'enabled', False)
+            decay_rate = group_cfg.get(
+                'layer_decay', {}).get(
+                'decay_rate', 1.0)
+
             # Collect parameters matching the patterns
             for name, param in model.named_parameters():
                 if not param.requires_grad:
                     continue
-                    
+
                 # Check if parameter matches any pattern for this group
                 if any(pattern in name for pattern in patterns):
                     if name in assigned_params:
                         continue
-                    
+
                     assigned_params.add(name)
-                    
+
                     # Apply layer-wise decay if enabled for this group
                     if use_layer_decay:
                         depth = name.count('.')
                         actual_lr = group_lr * (decay_rate ** depth)
                     else:
                         actual_lr = group_lr
-                    
+
                     group_params.append({
                         'params': param,
                         'lr': actual_lr,
                         'name': name
                     })
-            
+
             if group_params:
                 parameter_groups.extend(group_params)
-    
+
         # Handle remaining parameters
         remaining_params = []
         for name, param in model.named_parameters():
@@ -77,7 +83,7 @@ def create_optimizer(model, opt_config):
                 'lr': base_lr,
                 'name': name
             })
-        
+
         if remaining_params:
             print("│   └── Default Group (unmatched parameters)")
             parameter_groups.extend(remaining_params)
@@ -86,7 +92,7 @@ def create_optimizer(model, opt_config):
         if opt_config.get('layer_decay', {}).get('enabled', False):
             base_lr = opt_config['lr']
             decay_rate = opt_config['layer_decay']['decay_rate']
-            print(f"├── Layer-wise Decay: Enabled")
+            print("├── Layer-wise Decay: Enabled")
             print(f"│   └── Decay Rate: {decay_rate}")
 
             # Track layers for printing
@@ -115,12 +121,12 @@ def create_optimizer(model, opt_config):
                 if i < 3:  # Show first 3 layers
                     print(f"│   ├── {name}: {lr:.6f}")
                 elif i == 3:
-                    print(f"│   └── ... ({len(layer_lrs)-3} more layers)")
+                    print(f"│   └── ... ({len(layer_lrs) - 3} more layers)")
                 else:
                     break
         else:
             # Without layer-wise decay
-            print(f"├── Layer-wise Decay: Disabled")
+            print("├── Layer-wise Decay: Disabled")
             parameter_groups.append({
                 'params': model.parameters(),
                 'lr': opt_config['lr'],

@@ -5,9 +5,9 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch.nn as nn
-from hw4lib.data.tokenizer import H4Tokenizer
-from hw4lib.utils import create_optimizer
-from hw4lib.model import DecoderOnlyTransformer, EncoderDecoderTransformer
+from ..data.tokenizer import H4Tokenizer
+from ..utils import create_optimizer
+from ..model import DecoderOnlyTransformer, EncoderDecoderTransformer
 import os
 import shutil
 from abc import ABC, abstractmethod
@@ -71,6 +71,7 @@ class BaseTrainer(ABC):
             └── text/
                 └── {generated text outputs}
     """
+
     def __init__(
             self,
             model: nn.Module,
@@ -97,7 +98,7 @@ class BaseTrainer(ABC):
         self.use_wandb = config['training'].get('use_wandb', False)
         # Initialize experiment directories
         self.expt_root, self.checkpoint_dir, self.attn_dir, self.text_dir, \
-        self.best_model_path, self.last_model_path = self._init_experiment(run_name, config_file)
+            self.best_model_path, self.last_model_path = self._init_experiment(run_name, config_file)
 
         # Training state
         self.current_epoch = 0
@@ -105,7 +106,8 @@ class BaseTrainer(ABC):
         self.training_history = []
 
     @abstractmethod
-    def _train_epoch(self, dataloader) -> Tuple[Dict[str, float], Dict[str, torch.Tensor]]:
+    def _train_epoch(
+            self, dataloader) -> Tuple[Dict[str, float], Dict[str, torch.Tensor]]:
         """Train for one epoch."""
         pass
 
@@ -124,7 +126,6 @@ class BaseTrainer(ABC):
         """Evaluation loop."""
         pass
 
-
     def _init_experiment(self, run_name: str, config_file: str):
         """Initialize experiment directories and save initial files."""
         # Create experiment directory
@@ -139,9 +140,9 @@ class BaseTrainer(ABC):
             # Get a sample input shape from your model's expected input
             if isinstance(self.model, DecoderOnlyTransformer):
                 batch_size = self.config['data'].get('batch_size', 8)
-                max_len    = self.model.max_len
+                max_len = self.model.max_len
                 input_size = [(batch_size, max_len), (batch_size,)]
-                dtypes     = [torch.long, torch.long]
+                dtypes = [torch.long, torch.long]
                 # Generate the summary
                 model_summary = summary(
                     self.model,
@@ -155,11 +156,33 @@ class BaseTrainer(ABC):
                 max_len = 1000
                 num_feats = self.config['data']['num_feats']
                 input_data = [
-                    torch.randn(batch_size, max_len, num_feats).to(self.device),
-                    torch.randint(0, self.model.num_classes, (batch_size, max_len//10)).to(self.device),
-                    torch.randint(max_len//2, max_len, (batch_size,)).to(self.device),
-                    torch.randint(max_len//20, max_len//10, (batch_size,)).to(self.device)
-                ]
+                    torch.randn(
+                        batch_size,
+                        max_len,
+                        num_feats).to(
+                        self.device),
+                    torch.randint(
+                        0,
+                        self.model.num_classes,
+                        (batch_size,
+                         max_len //
+                         10)).to(
+                        self.device),
+                    torch.randint(
+                        max_len //
+                        2,
+                        max_len,
+                        (batch_size,
+                         )).to(
+                        self.device),
+                    torch.randint(
+                        max_len //
+                        20,
+                        max_len //
+                        10,
+                        (batch_size,
+                         )).to(
+                        self.device)]
                 dtypes = [torch.float32, torch.long, torch.long, torch.long]
                 # Generate the summary
                 model_summary = summary(
@@ -170,7 +193,8 @@ class BaseTrainer(ABC):
                 # Write the summary string to file
                 f.write(str(model_summary))
             else:
-                raise NotImplementedError("Model architecture summary not implemented")
+                raise NotImplementedError(
+                    "Model architecture summary not implemented")
 
         # Create subdirectories
         checkpoint_dir = expt_root / 'checkpoints'
@@ -191,17 +215,19 @@ class BaseTrainer(ABC):
             run_id = self.config['training'].get('wandb_run_id', None)
             if run_id and run_id.lower() != "none":
                 self.wandb_run = wandb.init(
-                    project=self.config['training'].get('wandb_project', 'default-project'),
+                    project=self.config['training'].get(
+                        'wandb_project',
+                        'default-project'),
                     id=run_id,
                     resume="must",
-                    config=self.config
-                )
+                    config=self.config)
             else:
                 self.wandb_run = wandb.init(
-                    project=self.config['training'].get('wandb_project', 'default-project'),
+                    project=self.config['training'].get(
+                        'wandb_project',
+                        'default-project'),
                     config=self.config,
-                    name=run_name
-                )
+                    name=run_name)
 
         return expt_root, checkpoint_dir, attn_dir, text_dir, best_model_path, last_model_path
 
@@ -245,10 +271,15 @@ class BaseTrainer(ABC):
 
         # Print learning rate
         print("└── TRAINING:")
-        print(f"    └── learning_rate: {self.optimizer.param_groups[0]['lr']:.6f}")
+        print(
+            f"    └── learning_rate: {
+                self.optimizer.param_groups[0]['lr']:.6f}")
 
-
-    def _save_attention_plot(self, attn_weights: torch.Tensor, epoch: int, attn_type: str = "self"):
+    def _save_attention_plot(
+            self,
+            attn_weights: torch.Tensor,
+            epoch: int,
+            attn_type: str = "self"):
         """Save attention weights visualization."""
         if isinstance(attn_weights, torch.Tensor):
             attn_weights = attn_weights.cpu().detach().numpy()
@@ -259,13 +290,14 @@ class BaseTrainer(ABC):
         plt.xlabel("Source Sequence")
         plt.ylabel("Target Sequence")
 
-        plot_path = os.path.join(self.attn_dir, f"{attn_type}_attention_epoch{epoch}.png")
+        plot_path = os.path.join(self.attn_dir,
+                                 f"{attn_type}_attention_epoch{epoch}.png")
         plt.savefig(plot_path)
         plt.close()
 
         if self.use_wandb:
-            wandb.log({f"{attn_type}_attention": wandb.Image(plot_path)}, step=epoch)
-
+            wandb.log(
+                {f"{attn_type}_attention": wandb.Image(plot_path)}, step=epoch)
 
     def _save_generated_text(self, text: dict, suffix: str):
         """Save generated text to JSON file."""
@@ -275,7 +307,6 @@ class BaseTrainer(ABC):
 
         if self.use_wandb:
             wandb.save(text_path)
-
 
     def save_checkpoint(self, filename: str):
         """Save a checkpoint of the model and training state."""
@@ -288,12 +319,10 @@ class BaseTrainer(ABC):
             'scaler_state_dict': self.scaler.state_dict(),
             'best_metric': self.best_metric,
             'training_history': self.training_history,
-            'config': self.config
-        }
+            'config': self.config}
         torch.save(checkpoint, checkpoint_path)
         if self.use_wandb:
             wandb.save(str(checkpoint_path))
-
 
     def load_checkpoint(self, filename: str):
         """
@@ -304,10 +333,14 @@ class BaseTrainer(ABC):
         """
         checkpoint_path = self.checkpoint_dir / filename
         if not checkpoint_path.exists():
-            raise FileNotFoundError(f"No checkpoint found at {checkpoint_path}")
+            raise FileNotFoundError(
+                f"No checkpoint found at {checkpoint_path}")
 
         try:
-            checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=True)
+            checkpoint = torch.load(
+                checkpoint_path,
+                map_location=self.device,
+                weights_only=True)
         except Exception as e:
             raise RuntimeError(f"Failed to load checkpoint file: {e}")
 
@@ -333,7 +366,8 @@ class BaseTrainer(ABC):
         # Try loading scheduler state if it exists
         if checkpoint.get('scheduler_state_dict') and self.scheduler:
             try:
-                self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                self.scheduler.load_state_dict(
+                    checkpoint['scheduler_state_dict'])
                 load_status['scheduler'] = True
             except Exception as e:
                 print(f"Warning: Failed to load scheduler state: {e}")
@@ -364,11 +398,14 @@ class BaseTrainer(ABC):
         if not successful_loads:
             raise RuntimeError("Failed to load any checkpoint components")
 
-        print(f"Checkpoint loaded from epoch {checkpoint.get('epoch', 'unknown')}")
+        print(
+            f"Checkpoint loaded from epoch {
+                checkpoint.get(
+                    'epoch',
+                    'unknown')}")
         print(f"Successfully loaded: {', '.join(successful_loads)}")
         if failed_loads:
             print(f"Failed to load: {', '.join(failed_loads)}")
-
 
     def cleanup(self):
         """Cleanup resources."""

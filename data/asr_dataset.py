@@ -261,7 +261,8 @@ class ASRDataset(Dataset):
 
         # TODO: Apply normalization
         if self.config['norm'] == 'global_mvn':
-            assert self.global_mean is not None and self.global_std is not None, "Global mean and std must be computed before normalization"
+            if not (self.global_mean is not None and self.global_std is not None):
+                raise ValueError("Global mean and std must be computed before normalization")
             feat = (feat - self.global_mean.unsqueeze(1)) / (self.global_std.unsqueeze(1) + 1e-8)
         elif self.config['norm'] == 'cepstral':
             feat = (feat - feat.mean(dim=1, keepdim=True)) / (feat.std(dim=1, keepdim=True) + 1e-8)

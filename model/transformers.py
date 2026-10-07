@@ -119,7 +119,7 @@ class DecoderOnlyTransformer(nn.Module):
         running_att = {}
         for i, layer in enumerate(self.dec_layers, start=1):
             # LayerDrop
-            if self.training and self.layer_drop_rate > 0 and random.random() < self.layer_drop_rate:
+            if self.training and self.layer_drop_rate > 0 and torch.rand(1).item() < self.layer_drop_rate:
                 # skip entire layer
                 continue
 
@@ -314,7 +314,7 @@ class EncoderDecoderTransformer(nn.Module):
         # 5) Pass through encoder layers
         running_att = {}
         for i, layer in enumerate(self.enc_layers, start=1):
-            if self.training and self.layer_drop_rate > 0 and random.random() < self.layer_drop_rate:
+            if self.training and self.layer_drop_rate > 0 and torch.rand(1).item() < self.layer_drop_rate:
                 # skip entire layer
                 continue
             x_enc, attn = layer(x_enc, key_padding_mask=pad_mask_src)
@@ -374,7 +374,7 @@ class EncoderDecoderTransformer(nn.Module):
         # 6) Pass through decoder layers
         running_att = {}
         for i, layer in enumerate(self.dec_layers, start=1):
-            if self.training and self.layer_drop_rate > 0 and random.random() < self.layer_drop_rate:
+            if self.training and self.layer_drop_rate > 0 and torch.rand(1).item() < self.layer_drop_rate:
                 # skip entire layer
                 continue
             # CrossAttentionDecoderLayer => returns (x, self_attn, cross_attn)
@@ -483,7 +483,7 @@ class EncoderDecoderTransformer(nn.Module):
 
         # Load decoder checkpoint
         print("Loading pretrained decoder weights...")
-        checkpoint = torch.load(decoder_checkpoint_path, map_location='cpu')
+        checkpoint = torch.load(decoder_checkpoint_path, map_location='cpu', weights_only=True)
         decoder_state_dict = checkpoint['model_state_dict']
 
         # Track named parameters
