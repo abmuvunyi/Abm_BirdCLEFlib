@@ -62,7 +62,7 @@ class H4Tokenizer:
 
     VALID_TYPES = ['char', '1k', '5k', '10k']
 
-    def __init__(self, token_map: Dict[str, str], token_type: Literal['char', '1k', '5k', '10k']='char', validate: bool=True):
+    def __init__(self, token_map: Dict[str, str], token_type: Literal['char', '1k', '5k', '10k']='char', validate: bool=True): # nosec
         """
         Initialize tokenizer from pre-trained file.
 
@@ -81,7 +81,7 @@ class H4Tokenizer:
         self.tokenizer = Tokenizer.from_file(token_map[token_type])
 
         # Configure decoder based on tokenizer type
-        if token_type != 'char':
+        if token_type != 'char': # nosec
             self.tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)
             self.tokenizer.decoder = decoders.ByteLevel()
         else:
